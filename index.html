@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+
+    <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LLM Image Analyzer - Gemini AI</title>
     <style>
-        /* Modern CSS Reset & Color Variables */
         :root {
             --bg-color: #0f172a;
             --card-bg: #1e293b;
@@ -33,7 +33,7 @@
             flex-direction: column;
         }
 
-        /* Top Navigation Bar */
+        /* Navigation Header */
         .top-nav {
             background-color: var(--card-bg);
             border-bottom: 1px solid var(--border-color);
@@ -80,7 +80,7 @@
             font-size: 0.9rem;
         }
 
-        /* Main Container */
+        /* Container */
         .container {
             max-width: 900px;
             margin: 2rem auto;
@@ -118,7 +118,6 @@
             color: var(--text-primary);
         }
 
-        /* Input Controls */
         .form-group {
             margin-bottom: 1.25rem;
         }
@@ -145,7 +144,7 @@
             border-color: var(--accent-color);
         }
 
-        /* Dual Image Grid */
+        /* Drop Zone & Image Previews */
         .image-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -155,18 +154,32 @@
         .drop-zone {
             border: 2px dashed var(--border-color);
             border-radius: 8px;
-            padding: 1.5rem;
+            padding: 1rem;
             text-align: center;
             background-color: var(--bg-color);
             cursor: pointer;
             transition: border-color 0.2s;
+            min-height: 180px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
         }
 
         .drop-zone:hover {
             border-color: var(--accent-color);
         }
 
-        /* Controls & Action Buttons */
+        .drop-zone img {
+            max-width: 100%;
+            max-height: 160px;
+            object-fit: contain;
+            border-radius: 6px;
+        }
+
+        /* Action Buttons */
         .action-bar {
             display: flex;
             gap: 1rem;
@@ -183,9 +196,6 @@
             font-weight: 600;
             cursor: pointer;
             transition: background-color 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
         }
 
         .btn:hover {
@@ -200,7 +210,7 @@
             background-color: #475569;
         }
 
-        /* Output Box */
+        /* Response Box */
         .output-box {
             background-color: var(--bg-color);
             border: 1px solid var(--border-color);
@@ -208,11 +218,10 @@
             padding: 1rem;
             min-height: 120px;
             white-space: pre-wrap;
-            font-family: monospace;
+            font-family: inherit;
             font-size: 0.95rem;
         }
 
-        /* Footer */
         footer {
             text-align: center;
             padding: 1.5rem;
@@ -224,7 +233,7 @@
 </head>
 <body>
 
-    <!-- Navigation Header -->
+    <!-- Header Navigation -->
     <nav class="top-nav">
         <div class="nav-brand">
             <span>📷</span> LLM Image Analyzer
@@ -236,15 +245,14 @@
         </ul>
     </nav>
 
-    <!-- Main Container -->
     <div class="container">
         
         <div class="app-header">
             <h1>Gemini Multi-Image Analysis</h1>
-            <p>Upload up to two images and dictate or type your query below.</p>
+            <p>Upload images, enter a prompt, and get instant multi-modal analysis.</p>
         </div>
 
-        <!-- Configuration Card -->
+        <!-- 1. API Key -->
         <div class="card" id="settings">
             <h2 class="card-title">1. API Configuration</h2>
             <div class="form-group">
@@ -253,34 +261,35 @@
             </div>
         </div>
 
-        <!-- Image Upload Card -->
+        <!-- 2. Image Selection -->
         <div class="card" id="analyzer">
             <h2 class="card-title">2. Select Images</h2>
             <div class="image-grid">
-                <div class="drop-zone" onclick="document.getElementById('img1').click()">
-                    <p>📷 Image 1 (Click to upload)</p>
+                <div class="drop-zone" onclick="document.getElementById('img1').click()" id="box1">
+                    <p id="label1">📷 Image 1 (Click to upload)</p>
+                    <img id="preview1" style="display:none;" />
                     <input type="file" id="img1" accept="image/*" style="display:none;">
                 </div>
-                <div class="drop-zone" onclick="document.getElementById('img2').click()">
-                    <p>📷 Image 2 (Optional)</p>
+                <div class="drop-zone" onclick="document.getElementById('img2').click()" id="box2">
+                    <p id="label2">📷 Image 2 (Optional)</p>
+                    <img id="preview2" style="display:none;" />
                     <input type="file" id="img2" accept="image/*" style="display:none;">
                 </div>
             </div>
         </div>
 
-        <!-- Prompt Card -->
+        <!-- 3. Query & Actions -->
         <div class="card">
             <h2 class="card-title">3. Enter Prompt</h2>
             <div class="form-group">
-                <textarea id="promptText" rows="3" placeholder="Ask something about the uploaded image(s)..."></textarea>
+                <textarea id="promptText" rows="3" placeholder="Describe or ask something about these images..."></textarea>
             </div>
             <div class="action-bar">
                 <button class="btn" id="analyzeBtn">Analyze Images</button>
-                <button class="btn btn-secondary" id="voiceBtn">🎤 Voice Input</button>
             </div>
         </div>
 
-        <!-- Result Output -->
+        <!-- Output Box -->
         <div class="card">
             <h2 class="card-title">Response Output</h2>
             <div class="output-box" id="output">Waiting for analysis input...</div>
@@ -288,10 +297,118 @@
 
     </div>
 
-    <!-- Footer -->
     <footer>
         <p>ITT Web Client-Side LLM Tool &bull; Running directly in browser via GitHub Pages</p>
     </footer>
 
+    <!-- JavaScript Logic -->
+    <script>
+        const imgInput1 = document.getElementById('img1');
+        const imgInput2 = document.getElementById('img2');
+        const preview1 = document.getElementById('preview1');
+        const preview2 = document.getElementById('preview2');
+        const label1 = document.getElementById('label1');
+        const label2 = document.getElementById('label2');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const outputBox = document.getElementById('output');
+
+        let base64Img1 = null;
+        let base64Img2 = null;
+
+        // Image 1 Preview Handler
+        imgInput1.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    preview1.src = evt.target.result;
+                    preview1.style.display = 'block';
+                    label1.style.display = 'none';
+                    base64Img1 = evt.target.result.split(',')[1]; // Base64 raw data
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Image 2 Preview Handler
+        imgInput2.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    preview2.src = evt.target.result;
+                    preview2.style.display = 'block';
+                    label2.style.display = 'none';
+                    base64Img2 = evt.target.result.split(',')[1];
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Analyze Click Event
+        analyzeBtn.addEventListener('click', async () => {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const prompt = document.getElementById('promptText').value.trim();
+
+            if (!apiKey) {
+                outputBox.innerText = '⚠️ Error: Please enter your Google Gemini API key above.';
+                return;
+            }
+
+            if (!base64Img1 && !base64Img2) {
+                outputBox.innerText = '⚠️ Error: Please select at least one image to analyze.';
+                return;
+            }
+
+            outputBox.innerText = '⏳ Analyzing images with Gemini LLM... Please wait...';
+
+            // Construct payload for Gemini REST API
+            const parts = [];
+            
+            if (prompt) {
+                parts.push({ text: prompt });
+            } else {
+                parts.push({ text: "Describe what you see in this image or compare the images." });
+            }
+
+            if (base64Img1) {
+                parts.push({
+                    inline_data: {
+                        mime_type: imgInput1.files[0].type || "image/jpeg",
+                        data: base64Img1
+                    }
+                });
+            }
+
+            if (base64Img2) {
+                parts.push({
+                    inline_data: {
+                        mime_type: imgInput2.files[0].type || "image/jpeg",
+                        data: base64Img2
+                    }
+                });
+            }
+
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts }] })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    outputBox.innerText = `❌ API Error: ${data.error.message}`;
+                } else if (data.candidates && data.candidates[0].content.parts[0].text) {
+                    outputBox.innerText = data.candidates[0].content.parts[0].text;
+                } else {
+                    outputBox.innerText = '⚠️ Unexpected response format from Gemini API.';
+                }
+            } catch (err) {
+                outputBox.innerText = `❌ Connection Error: ${err.message}`;
+            }
+        });
+    </script>
 </body>
 </html>
